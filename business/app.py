@@ -3,10 +3,8 @@ import json
 import os
 from datetime import datetime
 
-# File to store data
 DATA_FILE = "data.json"
 
-# Load existing data or create empty dict
 if os.path.exists(DATA_FILE):
     with open(DATA_FILE, "r") as f:
         data = json.load(f)
@@ -15,31 +13,31 @@ else:
 
 st.title("Supply Chain Tracker 🇹🇹")
 
-# Sidebar for Input
-st.sidebar.header("Add New Entry")
-with st.sidebar.form("entry_form"):
-    item_name = st.text_input("Item Name (e.g., Peppers)")
-    category = st.selectbox("Category", ["Local Produce", "Imported Good"])
-    price = st.number_input("Price ($)", min_value=0.0, format="%.2f")
-    quantity = st.number_input("Quantity", min_value=0)
-    submit = st.form_submit_button("Save Entry")
+# Add a tabs layout
+tab1, tab2 = st.tabs(["Single Entry", "Bulk Entry"])
 
-if submit:
-    new_entry = {
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "item": item_name,
-        "category": category,
-        "price": price,
-        "quantity": quantity
-    }
-    data.append(new_entry)
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-    st.success(f"Added {item_name}!")
+with tab1:
+    with st.form("single_form"):
+        item_name = st.text_input("Item Name")
+        price = st.number_input("Price ($)", min_value=0.0, format="%.2f")
+        submit = st.form_submit_button("Save")
+        if submit:
+            data.append({"date": str(datetime.now().date()), "item": item_name, "price": price})
+            with open(DATA_FILE, "w") as f:
+                json.dump(data, f, indent=4)
+            st.success("Saved!")
 
-# Display Data
-st.header("Dashboard")
-if data:
-    st.table(data)
-else:
-    st.write("No data yet. Use the sidebar to add entries.")
+with tab2:
+    st.write("Paste format: Item, Price (one per line)")
+    bulk_input = st.text_area("Bulk Data")
+    if st.button("Process Bulk"):
+        for line in bulk_input.split('\n'):
+            if ',' in line:
+                item, price = line.split(',')
+                data.append({"date": str(datetime.now().date()), "item": item.strip(), "price": float(price)})
+        with open(DATA_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+        st.success("Bulk entries added!")
+
+st.header("Your Data")
+st.table(data)
