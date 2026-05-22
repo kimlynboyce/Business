@@ -1,43 +1,42 @@
 import streamlit as st
-import json
+import pandas as pd
 import os
+import json
 from datetime import datetime
 
-DATA_FILE = "data.json"
+# File name
+DB_FILE = "market_data.json"
 
-if os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "r") as f:
-        data = json.load(f)
-else:
-    data = []
+# Initialize data
+if not os.path.exists(DB_FILE):
+    with open(DB_FILE, "w") as f:
+        json.dump([], f)
 
-st.title("Supply Chain Tracker 🇹🇹")
+st.title("Market Tracker")
 
-# Add a tabs layout
-tab1, tab2 = st.tabs(["Single Entry", "Bulk Entry"])
+# 1. Simple Form
+with st.form("entry", clear_on_submit=True):
+    item = st.text_input("Item Name")
+    category = st.selectbox("Category", ["Local", "Imported"])
+    price = st.number_input("Price", min_value=0.0)
+    submitted = st.form_submit_button("Save Item")
 
-with tab1:
-    with st.form("single_form"):
-        item_name = st.text_input("Item Name")
-        price = st.number_input("Price ($)", min_value=0.0, format="%.2f")
-        submit = st.form_submit_button("Save")
-        if submit:
-            data.append({"date": str(datetime.now().date()), "item": item_name, "price": price})
-            with open(DATA_FILE, "w") as f:
-                json.dump(data, f, indent=4)
-            st.success("Saved!")
-
-with tab2:
-    st.write("Paste format: Item, Price (one per line)")
-    bulk_input = st.text_area("Bulk Data")
-    if st.button("Process Bulk"):
-        for line in bulk_input.split('\n'):
-            if ',' in line:
-                item, price = line.split(',')
-                data.append({"date": str(datetime.now().date()), "item": item.strip(), "price": float(price)})
-        with open(DATA_FILE, "w") as f:
+    if submitted and item:
+        with open(DB_FILE, "r+") as f:
+            data = json.load(f)
+            data.append({
+                "Date": str(datetime.now().date()),
+                "Item": item,
+                "Category": category,
+                "Price": price
+            })
+            f.seek(0)
             json.dump(data, f, indent=4)
-        st.success("Bulk entries added!")
+        st.success(f"Added {item}!")
 
-st.header("Your Data")
-st.table(data)
+# 2. Display Table
+with open(DB_FILE, "r") as f:
+    df = pd.DataFrame(json.load(f))
+
+if not df.empty:
+    st.table(df)
